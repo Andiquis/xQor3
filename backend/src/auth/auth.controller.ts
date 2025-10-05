@@ -25,20 +25,24 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @ApiOperation({
-    summary: 'Registrar nuevo usuario',
-    description: `Crea una nueva cuenta de usuario en el sistema.
+    summary: '🔓 Registrar nuevo usuario (Sin autenticación requerida)',
+    description: `Crea una nueva cuenta de usuario en el sistema y devuelve un token JWT automáticamente.
     
-    **Requisitos de contraseña:**
+    **🔑 Autenticación:** No requerida - Endpoint público
+    
+    **📝 Requisitos de contraseña:**
     - Mínimo 8 caracteres
     - Al menos 1 letra mayúscula
     - Al menos 1 letra minúscula  
     - Al menos 1 número
     - Al menos 1 símbolo (@$!%*?&)
     
-    **Validaciones:**
+    **✅ Validaciones:**
     - Email único en el sistema
     - DNI único (si se proporciona)
-    - Teléfono en formato internacional`,
+    - Teléfono en formato internacional
+    
+    **💡 Nota:** Después del registro, puedes usar el access_token devuelto para autenticarte en otros endpoints.`,
   })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
@@ -90,20 +94,24 @@ export class AuthController {
   }
 
   @ApiOperation({
-    summary: 'Iniciar sesión',
-    description: `Autentica un usuario y devuelve un token JWT.
+    summary: '🔓 Iniciar sesión (Sin autenticación requerida)',
+    description: `Autentica un usuario existente y devuelve un token JWT para acceder a endpoints protegidos.
     
-    **Características de seguridad:**
+    **🔑 Autenticación:** No requerida - Endpoint público
+    
+    **🔐 Características de seguridad:**
     - Bloqueo automático después de 5 intentos fallidos
     - Cuenta bloqueada por 15 minutos tras intentos fallidos
     - Registro de intentos de acceso
-    - Validación de cuenta activa
+    - Validación de cuenta activa y email verificado
     
-    **Token JWT incluye:**
+    **🎫 Token JWT incluye:**
     - ID del usuario
     - Email
-    - Roles asignados
-    - Tiempo de expiración`,
+    - Roles asignados (superadmin, admin, usuario)
+    - Tiempo de expiración (24 horas)
+    
+    **💡 Nota:** Usa el access_token devuelto en el header Authorization: Bearer <token> para endpoints protegidos.`,
   })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -149,7 +157,8 @@ export class AuthController {
         },
         'Cuenta bloqueada': {
           value: {
-            message: 'Cuenta bloqueada por intentos fallidos. Intenta nuevamente en 12 minutos',
+            message:
+              'Cuenta bloqueada por intentos fallidos. Intenta nuevamente en 12 minutos',
             statusCode: 401,
           },
         },
@@ -168,8 +177,21 @@ export class AuthController {
   }
 
   @ApiOperation({
-    summary: 'Obtener perfil del usuario',
-    description: 'Obtiene la información del usuario autenticado',
+    summary: '🔒 Obtener perfil del usuario (JWT requerido)',
+    description: `Obtiene la información completa del usuario autenticado.
+    
+    **🔑 Autenticación:** JWT Token requerido
+    **🎭 Roles:** Cualquier usuario autenticado
+    
+    **📋 Información devuelta:**
+    - ID del usuario
+    - Nombre completo
+    - Email
+    - Roles asignados
+    - Estado de verificación
+    - Estado activo/inactivo
+    
+    **💡 Uso:** Ideal para obtener información del usuario logueado en el frontend.`,
   })
   @ApiResponse({
     status: 200,

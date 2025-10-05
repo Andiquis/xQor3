@@ -79,6 +79,28 @@ export class RolesService {
       throw new NotFoundException(`Rol con ID ${id} no encontrado`);
     }
 
+    // Transformar completamente para evitar problemas de BigInt
+    if (rol.usuarioRoles) {
+      rol.usuarioRoles = rol.usuarioRoles.map((usuarioRol: any) => ({
+        idUsuarioRol: usuarioRol.idUsuarioRol
+          ? usuarioRol.idUsuarioRol.toString()
+          : null,
+        idUsuario: usuarioRol.idUsuario
+          ? usuarioRol.idUsuario.toString()
+          : null,
+        idRol: usuarioRol.idRol,
+        estado: usuarioRol.estado,
+        fechaAsignacion: usuarioRol.fechaAsignacion,
+        fechaRevocacion: usuarioRol.fechaRevocacion,
+        usuario: {
+          idUsuario: usuarioRol.usuario.idUsuario.toString(),
+          nombreUser: usuarioRol.usuario.nombreUser,
+          emailUser: usuarioRol.usuario.emailUser,
+          activo: usuarioRol.usuario.activo,
+        },
+      }));
+    }
+
     return rol;
   }
 
@@ -149,7 +171,7 @@ export class RolesService {
   async getUsuariosByRol(id: number): Promise<any[]> {
     await this.findOne(id); // Verificar que el rol existe
 
-    return (this.prisma as any).usuarioRol.findMany({
+    const usuarioRoles = await (this.prisma as any).usuarioRol.findMany({
       where: {
         idRol: id,
         estado: 'activo',
@@ -166,5 +188,124 @@ export class RolesService {
         },
       },
     });
+
+    // Transformar completamente para evitar problemas de BigInt
+    return usuarioRoles.map((usuarioRol: any) => ({
+      idUsuarioRol: usuarioRol.idUsuarioRol
+        ? usuarioRol.idUsuarioRol.toString()
+        : null,
+      idUsuario: usuarioRol.idUsuario ? usuarioRol.idUsuario.toString() : null,
+      idRol: usuarioRol.idRol,
+      estado: usuarioRol.estado,
+      fechaAsignacion: usuarioRol.fechaAsignacion,
+      fechaRevocacion: usuarioRol.fechaRevocacion,
+      usuario: {
+        idUsuario: usuarioRol.usuario.idUsuario.toString(),
+        nombreUser: usuarioRol.usuario.nombreUser,
+        emailUser: usuarioRol.usuario.emailUser,
+        activo: usuarioRol.usuario.activo,
+        fechaCreacion: usuarioRol.usuario.fechaCreacion,
+      },
+    }));
+  }
+
+  async assignRoleToUser(
+    rolId: number,
+    userId: string,
+    action: 'assign' | 'revoke',
+  ): Promise<any> {
+    // Verificar que el rol existe
+    await this.findOne(rolId);
+
+    // Verificar que el usuario existe
+    const userIdBigInt = BigInt(userId);
+    const user = await (this.prisma as any).usuario.findUnique({
+      where: { idUsuario: userIdBigInt },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    if (action === 'assign') {
+      // Verificar si ya tiene el rol asignado
+      const existingAssignment = await (
+        this.prisma as any
+      ).usuarioRol.findFirst({
+        where: {
+          idUsuario: userIdBigInt,
+          idRol: rolId,
+          estado: 'activo',
+        },
+      });
+
+      if (existingAssignment) {
+        throw new ConflictException('El usuario ya tiene este rol asignado');
+      }
+
+      // Asignar el rol
+      const assignment = await (this.prisma as any).usuarioRol.create({
+        data: {
+          idUsuario: userIdBigInt,
+          idRol: rolId,
+          estado: 'activo',
+        },
+        include: {
+          rol: true,
+          usuario: {
+            select: {
+              idUsuario: true,
+              nombreUser: true,
+              emailUser: true,
+            },
+          },
+        },
+      });
+
+      return {
+        message: 'Rol asignado exitosamente',
+        assignment: {
+          idUsuarioRol: assignment.idUsuarioRol.toString(),
+          usuario: {
+            idUsuario: assignment.usuario.idUsuario.toString(),
+            nombreUser: assignment.usuario.nombreUser,
+            emailUser: assignment.usuario.emailUser,
+          },
+          rol: assignment.rol,
+          fechaAsignacion: assignment.fechaAsignacion,
+        },
+      };
+    } else {
+      // Revocar el rol (cambiar estado a inactivo)
+      const activeAssignment = await (this.prisma as any).usuarioRol.findFirst({
+        where: {
+          idUsuario: userIdBigInt,
+          idRol: rolId,
+          estado: 'activo',
+        },
+      });
+
+      if (!activeAssignment) {
+        throw new NotFoundException(
+          'El usuario no tiene este rol asignado activamente',
+        );
+      }
+
+      await (this.prisma as any).usuarioRol.update({
+        where: { idUsuarioRol: activeAssignment.idUsuarioRol },
+        data: {
+          estado: 'inactivo',
+          fechaRevocacion: new Date(),
+        },
+      });
+
+      return {
+        message: 'Rol revocado exitosamente',
+        revocation: {
+          idUsuarioRol: activeAssignment.idUsuarioRol.toString(),
+          fechaRevocacion: new Date(),
+        },
+      };
+    }
   }
 }

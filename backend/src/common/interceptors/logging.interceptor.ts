@@ -45,6 +45,6 @@ export class LoggingInterceptor implements NestInterceptor {
   private shouldLogRequest(url: string): boolean {
     // No loguear requests estáticos o de health check
     const skipPaths = ['/favicon.ico', '/health', '/api/docs'];
-    return !skipPaths.some(path => url.startsWith(path));
+    return !skipPaths.some((path) => url.startsWith(path));
   }
 }

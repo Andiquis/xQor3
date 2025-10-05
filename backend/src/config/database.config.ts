@@ -6,7 +6,7 @@ export default registerAs('database', () => ({
   port: parseInt(process.env.DB_PORT || '3306', 10),
   username: process.env.DB_USERNAME || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'xqor3_db',
+  database: process.env.DB_NAME || 'db_xqore',
   entities: ['dist/**/*.entity{.ts,.js}'],
   synchronize: process.env.NODE_ENV !== 'production',
   logging: process.env.NODE_ENV === 'development',

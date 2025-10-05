@@ -22,6 +22,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user || !user.activo) {
       return null;
     }
-    return user;
+
+    // Extraer roles para el guard
+    const roles = user.usuarioRoles?.map((ur: any) => ur.rol.nombreRol) || [
+      'usuario',
+    ];
+
+    // Devolver usuario con roles procesados
+    return {
+      ...user,
+      roles: roles, // Array de strings para el RolesGuard
+    };
   }
 }

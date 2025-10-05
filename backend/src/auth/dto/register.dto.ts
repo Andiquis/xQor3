@@ -1,12 +1,12 @@
-import { 
-  IsEmail, 
-  IsNotEmpty, 
-  MinLength, 
-  MaxLength, 
+import {
+  IsEmail,
+  IsNotEmpty,
+  MinLength,
+  MaxLength,
   IsString,
   Matches,
   IsOptional,
-  IsPhoneNumber 
+  IsPhoneNumber,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
@@ -24,7 +24,8 @@ export class RegisterDto {
 
   @ApiProperty({
     example: 'MySecureP@ss123',
-    description: 'Contraseña del usuario (mínimo 8 caracteres, debe contener mayúscula, minúscula, número y símbolo)',
+    description:
+      'Contraseña del usuario (mínimo 8 caracteres, debe contener mayúscula, minúscula, número y símbolo)',
     minLength: 8,
     maxLength: 128,
   })
@@ -32,12 +33,10 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'La contraseña es obligatoria' })
   @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   @MaxLength(128, { message: 'La contraseña no puede exceder 128 caracteres' })
-  @Matches(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-    { 
-      message: 'La contraseña debe contener al menos: 1 minúscula, 1 mayúscula, 1 número y 1 símbolo (@$!%*?&)' 
-    }
-  )
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
+    message:
+      'La contraseña debe contener al menos: 1 minúscula, 1 mayúscula, 1 número y 1 símbolo (@$!%*?&)',
+  })
   password: string;
 
   @ApiProperty({
@@ -49,8 +48,8 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
   @MaxLength(100, { message: 'El nombre no puede exceder 100 caracteres' })
-  @Matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/, { 
-    message: 'El nombre solo puede contener letras y espacios' 
+  @Matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/, {
+    message: 'El nombre solo puede contener letras y espacios',
   })
   @Transform(({ value }) => value?.trim().replace(/\s+/g, ' '))
   firstName: string;
@@ -64,8 +63,8 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'El apellido es obligatorio' })
   @MinLength(2, { message: 'El apellido debe tener al menos 2 caracteres' })
   @MaxLength(100, { message: 'El apellido no puede exceder 100 caracteres' })
-  @Matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/, { 
-    message: 'El apellido solo puede contener letras y espacios' 
+  @Matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/, {
+    message: 'El apellido solo puede contener letras y espacios',
   })
   @Transform(({ value }) => value?.trim().replace(/\s+/g, ' '))
   lastName: string;
@@ -78,8 +77,8 @@ export class RegisterDto {
   @IsOptional()
   @IsString({ message: 'El teléfono debe ser una cadena de texto' })
   @MaxLength(20, { message: 'El teléfono no puede exceder 20 caracteres' })
-  @Matches(/^\+?[1-9]\d{1,14}$/, { 
-    message: 'El teléfono debe tener un formato válido (ej: +51987654321)' 
+  @Matches(/^\+?[1-9]\d{1,14}$/, {
+    message: 'El teléfono debe tener un formato válido (ej: +51987654321)',
   })
   telefono?: string;
 
@@ -91,8 +90,8 @@ export class RegisterDto {
   @IsOptional()
   @IsString({ message: 'El DNI debe ser una cadena de texto' })
   @MaxLength(20, { message: 'El DNI no puede exceder 20 caracteres' })
-  @Matches(/^[a-zA-Z0-9]+$/, { 
-    message: 'El DNI solo puede contener letras y números' 
+  @Matches(/^[a-zA-Z0-9]+$/, {
+    message: 'El DNI solo puede contener letras y números',
   })
   dni?: string;
 }

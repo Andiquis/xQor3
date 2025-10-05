@@ -20,18 +20,25 @@ import {
 import { RolesService } from './roles.service';
 import { CreateRolDto } from './dto/create-rol.dto';
 import { UpdateRolDto } from './dto/update-rol.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('roles')
 @Controller('roles')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @ApiOperation({
-    summary: 'Crear nuevo rol',
-    description: 'Crea un nuevo rol en el sistema',
+    summary: '🔒 Crear nuevo rol (Solo Superadmin)',
+    description: `Crea un nuevo rol en el sistema con descripción y estado.
+    
+    **🔑 Autenticación:** JWT Token requerido
+    **🎭 Roles permitidos:** superadmin
+    **⛔ Restricción:** Solo usuarios con rol superadmin pueden crear roles`,
   })
   @ApiBody({ type: CreateRolDto })
   @ApiResponse({
@@ -49,14 +56,20 @@ export class RolesController {
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @ApiResponse({ status: 409, description: 'El rol ya existe' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'Se requiere rol de superadmin' })
   @Post()
+  @Roles('superadmin')
   create(@Body() createRolDto: CreateRolDto) {
     return this.rolesService.create(createRolDto);
   }
 
   @ApiOperation({
-    summary: 'Listar todos los roles',
-    description: 'Obtiene una lista de todos los roles con conteo de usuarios',
+    summary: '🔒 Listar todos los roles (Todos los usuarios)',
+    description: `Obtiene una lista de todos los roles del sistema con conteo de usuarios asignados.
+    
+    **🔑 Autenticación:** JWT Token requerido
+    **🎭 Roles permitidos:** Todos los usuarios autenticados
+    **📊 Información incluida:** Conteo de usuarios por rol`,
   })
   @ApiResponse({
     status: 200,
@@ -159,7 +172,9 @@ export class RolesController {
   @ApiResponse({ status: 404, description: 'Rol no encontrado' })
   @ApiResponse({ status: 409, description: 'El nombre del rol ya existe' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'Se requiere rol de superadmin' })
   @Patch(':id')
+  @Roles('superadmin')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRolDto: UpdateRolDto,
@@ -188,7 +203,9 @@ export class RolesController {
     description: 'No se puede eliminar el rol porque tiene usuarios asignados',
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'Se requiere rol de superadmin' })
   @Delete(':id')
+  @Roles('superadmin')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.remove(id);
   }
@@ -217,7 +234,9 @@ export class RolesController {
   })
   @ApiResponse({ status: 404, description: 'Rol no encontrado' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'Se requiere rol de superadmin' })
   @Patch(':id/toggle-estado')
+  @Roles('superadmin')
   toggleEstado(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.toggleEstado(id);
   }
@@ -251,8 +270,79 @@ export class RolesController {
   })
   @ApiResponse({ status: 404, description: 'Rol no encontrado' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Se requiere rol de admin o superadmin',
+  })
   @Get(':id/usuarios')
+  @Roles('admin', 'superadmin')
   getUsuariosByRol(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.getUsuariosByRol(id);
+  }
+
+  @ApiOperation({
+    summary: 'Asignar o revocar rol a usuario',
+    description:
+      'Permite al admin asignar o revocar roles a usuarios específicos',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del rol',
+    type: 'integer',
+    example: 1,
+  })
+  @ApiBody({
+    description: 'Datos para asignar o revocar rol',
+    schema: {
+      example: {
+        idUsuario: '2',
+        action: 'assign',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rol asignado o revocado exitosamente',
+    schema: {
+      example: {
+        message: 'Rol asignado exitosamente',
+        assignment: {
+          idUsuarioRol: '3',
+          usuario: {
+            idUsuario: '2',
+            nombreUser: 'Juan Carlos Pérez González',
+            emailUser: 'andiquispe9422@gmail.com',
+          },
+          rol: {
+            idRol: 1,
+            nombreRol: 'admin',
+            estadoRol: 'activo',
+          },
+          fechaAsignacion: '2025-10-05T09:15:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Rol o usuario no encontrado' })
+  @ApiResponse({
+    status: 409,
+    description: 'El usuario ya tiene este rol asignado',
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Se requiere rol de admin o superadmin',
+  })
+  @Post(':id/assign')
+  @Roles('admin', 'superadmin')
+  assignRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() assignRoleDto: AssignRoleDto,
+  ) {
+    return this.rolesService.assignRoleToUser(
+      id,
+      assignRoleDto.idUsuario,
+      assignRoleDto.action,
+    );
   }
 }

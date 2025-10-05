@@ -1,0 +1,4 @@
+- adicionar login y registro de usuarios por oauth
+- documentar los flujos de autenticación y autorización
+- adicionar segunda capa de seguridad con los superadmin
+- adicionar una columna de estado de cuenta en la tabla de superadmin y admin

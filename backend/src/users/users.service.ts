@@ -48,7 +48,7 @@ export class UsersService {
     return usuario;
   }
   async findByEmail(email: string): Promise<any> {
-    return (this.prisma as any).usuario.findUnique({
+    const user = await (this.prisma as any).usuario.findUnique({
       where: { emailUser: email },
       include: {
         usuarioRoles: {
@@ -59,10 +59,17 @@ export class UsersService {
         },
       },
     });
+
+    if (user) {
+      // Convertir BigInt a string para serialización JSON
+      user.idUsuario = user.idUsuario.toString();
+    }
+
+    return user;
   }
 
   async findById(id: bigint): Promise<any> {
-    return (this.prisma as any).usuario.findUnique({
+    const user = await (this.prisma as any).usuario.findUnique({
       where: { idUsuario: id },
       include: {
         usuarioRoles: {
@@ -73,6 +80,13 @@ export class UsersService {
         },
       },
     });
+
+    if (user) {
+      // Convertir BigInt a string para serialización JSON
+      user.idUsuario = user.idUsuario.toString();
+    }
+
+    return user;
   }
 
   private async assignDefaultRole(usuarioId: bigint): Promise<void> {
@@ -93,7 +107,7 @@ export class UsersService {
   }
 
   async findAll(): Promise<any[]> {
-    return (this.prisma as any).usuario.findMany({
+    const users = await (this.prisma as any).usuario.findMany({
       select: {
         idUsuario: true,
         emailUser: true,
@@ -108,6 +122,12 @@ export class UsersService {
         },
       },
     });
+
+    // Convertir BigInt a string para serialización JSON
+    return users.map((user: any) => ({
+      ...user,
+      idUsuario: user.idUsuario.toString(),
+    }));
   }
 
   async validatePassword(user: any, password: string): Promise<boolean> {

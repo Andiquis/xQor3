@@ -24,7 +24,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
+
       if (typeof exceptionResponse === 'object') {
         message = (exceptionResponse as any).message || exception.message;
         error = (exceptionResponse as any).error || exception.name;
@@ -36,7 +36,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Error interno del servidor';
       error = 'Internal Server Error';
-      
+
       // Log del error completo para debugging
       this.logger.error(
         `Error no manejado: ${exception.message}`,
@@ -46,14 +46,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Error interno del servidor';
       error = 'Internal Server Error';
-      
+
       this.logger.error('Error desconocido:', exception);
     }
 
     // Log de errores 4xx y 5xx
     if (status >= 400) {
       const logMessage = `${request.method} ${request.url} - ${status} - ${message}`;
-      
+
       if (status >= 500) {
         this.logger.error(logMessage);
       } else {

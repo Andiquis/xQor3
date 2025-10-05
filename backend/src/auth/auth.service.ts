@@ -48,28 +48,37 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     try {
       const user = await this.usersService.findByEmail(email);
-      
+
       if (!user) {
-        this.logger.warn(`Intento de login fallido: usuario no encontrado ${email}`);
+        this.logger.warn(
+          `Intento de login fallido: usuario no encontrado ${email}`,
+        );
         return null;
       }
 
       // Verificar si la cuenta está bloqueada
       if (user.bloqueadoHasta && new Date() < user.bloqueadoHasta) {
-        const tiempoRestante = Math.ceil((user.bloqueadoHasta.getTime() - Date.now()) / 60000);
+        const tiempoRestante = Math.ceil(
+          (user.bloqueadoHasta.getTime() - Date.now()) / 60000,
+        );
         throw new UnauthorizedException(
-          `Cuenta bloqueada por intentos fallidos. Intenta nuevamente en ${tiempoRestante} minutos`
+          `Cuenta bloqueada por intentos fallidos. Intenta nuevamente en ${tiempoRestante} minutos`,
         );
       }
 
       // Verificar si la cuenta está activa
       if (!user.activo) {
-        throw new UnauthorizedException('Cuenta desactivada. Contacta al administrador');
+        throw new UnauthorizedException(
+          'Cuenta desactivada. Contacta al administrador',
+        );
       }
 
       // Validar contraseña
-      const isPasswordValid = await this.usersService.validatePassword(user, password);
-      
+      const isPasswordValid = await this.usersService.validatePassword(
+        user,
+        password,
+      );
+
       if (!isPasswordValid) {
         await this.handleFailedLogin(user);
         return null;
@@ -77,10 +86,9 @@ export class AuthService {
 
       // Login exitoso - resetear intentos fallidos
       await this.handleSuccessfulLogin(user);
-      
+
       const { passwordUser, ...result } = user;
       return result;
-      
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
@@ -92,13 +100,15 @@ export class AuthService {
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const user = await this.validateUser(loginDto.email, loginDto.password);
-    
+
     if (!user) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     // Obtener roles del usuario
-    const roles = user.usuarioRoles?.map(ur => ur.rol.nombreRol) || ['usuario'];
+    const roles = user.usuarioRoles?.map((ur) => ur.rol.nombreRol) || [
+      'usuario',
+    ];
     const primaryRole = roles[0] || 'usuario';
 
     // Crear payload del JWT
@@ -110,7 +120,8 @@ export class AuthService {
     };
 
     // Obtener configuración de expiración
-    const expiresIn = this.configService.get('jwt.signOptions.expiresIn') || '24h';
+    const expiresIn =
+      this.configService.get('jwt.signOptions.expiresIn') || '24h';
     const expiresInSeconds = this.parseExpirationTime(expiresIn);
 
     const accessToken = this.jwtService.sign(payload);
@@ -135,7 +146,9 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     try {
       // Verificar si el email ya existe
-      const existingUser = await this.usersService.findByEmail(registerDto.email);
+      const existingUser = await this.usersService.findByEmail(
+        registerDto.email,
+      );
       if (existingUser) {
         throw new ConflictException('El email ya está registrado');
       }
@@ -161,7 +174,8 @@ export class AuthService {
         iat: Math.floor(Date.now() / 1000),
       };
 
-      const expiresIn = this.configService.get('jwt.signOptions.expiresIn') || '24h';
+      const expiresIn =
+        this.configService.get('jwt.signOptions.expiresIn') || '24h';
       const expiresInSeconds = this.parseExpirationTime(expiresIn);
       const accessToken = this.jwtService.sign(payload);
 
@@ -178,7 +192,6 @@ export class AuthService {
           activo: true,
         },
       };
-
     } catch (error) {
       if (error instanceof ConflictException) {
         throw error;
@@ -191,17 +204,21 @@ export class AuthService {
   private async handleFailedLogin(user: UsuarioWithRoles): Promise<void> {
     const intentos = (user.intentosLoginFallidos || 0) + 1;
     const shouldLock = intentos >= this.MAX_LOGIN_ATTEMPTS;
-    
+
     await (this.prisma as any).usuario.update({
       where: { idUsuario: user.idUsuario },
       data: {
         intentosLoginFallidos: intentos,
-        bloqueadoHasta: shouldLock ? new Date(Date.now() + this.LOCKOUT_DURATION) : null,
+        bloqueadoHasta: shouldLock
+          ? new Date(Date.now() + this.LOCKOUT_DURATION)
+          : null,
       },
     });
 
     if (shouldLock) {
-      this.logger.warn(`Cuenta bloqueada por intentos fallidos: ${user.emailUser}`);
+      this.logger.warn(
+        `Cuenta bloqueada por intentos fallidos: ${user.emailUser}`,
+      );
     }
   }
 
@@ -225,19 +242,24 @@ export class AuthService {
 
   private parseExpirationTime(expiresIn: string): number {
     if (typeof expiresIn === 'number') return expiresIn;
-    
+
     const match = expiresIn.match(/^(\d+)([smhd])$/);
     if (!match) return 86400; // 24 horas por defecto
-    
+
     const [, value, unit] = match;
     const num = parseInt(value);
-    
+
     switch (unit) {
-      case 's': return num;
-      case 'm': return num * 60;
-      case 'h': return num * 3600;
-      case 'd': return num * 86400;
-      default: return 86400;
+      case 's':
+        return num;
+      case 'm':
+        return num * 60;
+      case 'h':
+        return num * 3600;
+      case 'd':
+        return num * 86400;
+      default:
+        return 86400;
     }
   }
 }
