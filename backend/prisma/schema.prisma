@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum EstadoRol {
+  activo
+  inactivo
+}
+
+enum ProveedorOauth {
+  google
+  facebook
+  apple
+}
+
+enum EstadoUsuarioRol {
+  activo
+  inactivo
+}
+
+model Rol {
+  idRol         Int           @id @default(autoincrement()) @map("id_rol")
+  nombreRol     String        @unique @map("nombre_rol") @db.VarChar(50)
+  estadoRol     EstadoRol     @default(activo) @map("estado_rol")
+  descripcionRol String?      @map("descripcion_rol") @db.Text
+  
+  // Relaciones
+  usuarioRoles  UsuarioRol[]
+
+  @@index([nombreRol], map: "idx_nombre_rol")
+  @@map("t_roles")
+}
+
+model Usuario {
+  idUsuario              BigInt            @id @default(autoincrement()) @map("id_usuario")
+  nombreUser             String            @map("nombre_user") @db.VarChar(200)
+  dniUser                String?           @unique @map("dni_user") @db.VarChar(20)
+  emailUser              String            @unique @map("email_user") @db.VarChar(255)
+  telefonoUser           String?           @map("telefono_user") @db.VarChar(20)
+  direccionUser          String?           @map("direccion_user") @db.Text
+  fotoUrlUser            String?           @map("foto_url_user") @db.VarChar(500)
+  passwordUser           String            @map("password_user") @db.VarChar(255)
+  emailVerificado        Boolean           @default(false) @map("email_verificado")
+  intentosLoginFallidos  Int               @default(0) @map("intentos_login_fallidos")
+  bloqueadoHasta         DateTime?         @map("bloqueado_hasta")
+  ultimoLogin            DateTime?         @map("ultimo_login")
+  tokenRecuperacion      String?           @map("token_recuperacion") @db.VarChar(100)
+  tokenExpiracion        DateTime?         @map("token_expiracion")
+  proveedorOauth         ProveedorOauth?   @map("proveedor_oauth")
+  subOauth               String?           @unique @map("sub_oauth") @db.VarChar(100)
+  activo                 Boolean           @default(true)
+  fechaCreacion          DateTime          @default(now()) @map("fecha_creacion")
+  fechaModificacion      DateTime          @default(now()) @updatedAt @map("fecha_modificacion")
+
+  // Relaciones
+  usuarioRoles           UsuarioRol[]
+
+  @@index([emailUser], map: "idx_email_user")
+  @@index([dniUser], map: "idx_dni_user")
+  @@index([ultimoLogin], map: "idx_ultimo_login")
+  @@index([fechaCreacion], map: "idx_fecha_creacion")
+  @@map("t_usuarios")
+}
+
+model UsuarioRol {
+  idUsuarioRol      BigInt            @id @default(autoincrement()) @map("id_usuario_rol")
+  idUsuario         BigInt            @map("id_usuario")
+  idRol             Int               @map("id_rol")
+  estado            EstadoUsuarioRol  @default(activo)
+  fechaAsignacion   DateTime          @default(now()) @map("fecha_asignacion")
+  fechaRevocacion   DateTime?         @map("fecha_revocacion")
+
+  // Relaciones
+  usuario           Usuario           @relation(fields: [idUsuario], references: [idUsuario])
+  rol               Rol               @relation(fields: [idRol], references: [idRol])
+
+  @@unique([idUsuario, idRol], map: "unique_usuario_rol")
+  @@index([idUsuario], map: "idx_id_usuario")
+  @@index([idRol], map: "idx_id_rol")
+  @@index([fechaAsignacion], map: "idx_fecha_asignacion")
+  @@map("t_usuario_roles")
+}
